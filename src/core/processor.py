@@ -39,6 +39,11 @@ class QAPromptProcessor:
             or "English"
         )
 
+        self.example_format: str = (
+            self.config.get("example_format")
+            or "to match given task"
+        )
+
         self.language_prompt = self._read_language_prompt("src\\template\\language_prompt.txt")
 
 
@@ -76,6 +81,7 @@ class QAPromptProcessor:
             "task_description": self.task_description,
             "language": self.language,
             "language_prompt": self.language_prompt,
+            "example_format": self.example_format,
         }
 
         return template_text.format(**values)
