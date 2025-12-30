@@ -44,6 +44,11 @@ class QAPromptProcessor:
             or "to match given task"
         )
 
+        self.additional_prompts: str = (
+            self.config.get("additional_prompts")
+            or "no additional prompts"
+        )
+
         self.language_prompt = self._read_language_prompt("src\\template\\language_prompt.txt")
 
 
@@ -82,6 +87,7 @@ class QAPromptProcessor:
             "language": self.language,
             "language_prompt": self.language_prompt,
             "example_format": self.example_format,
+            "additional_prompts": self.additional_prompts,
         }
 
         return template_text.format(**values)
