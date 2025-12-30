@@ -74,25 +74,14 @@ class TemplateRegistry:
     
 
     def get_latest_prompt_template_path(
-        self,
-        category: str = None,
-        use_user_dir: bool = False,
-        name_prefix: Optional[str] = None,
-    ) -> str:
+            self,
+            category: str = None,
+            use_user_dir: bool = False,
+            name_prefix: Optional[str] = None,
+        ) -> str:
         """
-        Find the most recent .txt prompt file and return its path.
-
-        Args:
-            category: Subfolder under 'prompts' to search (e.g. 'optimized').
-            use_user_dir: If True, search under user_configs/prompts, else templates/prompts.
-            name_prefix: Optional filename prefix filter
-                         (e.g. 'qa_optimized_prompt' to only consider those files).
-
-        Returns:
-            str: Absolute path to the most recently modified matching .txt file.
-
-        Raises:
-            FileNotFoundError: If no matching prompt files are found.
+        Find the most recent .txt prompt file and return its path,
+        excluding 'language_prompt.txt'.
         """
         base_dir = self.user_configs_dir if use_user_dir else self.templates_dir
         prompts_dir = Path(base_dir) / "template"
@@ -115,9 +104,17 @@ class TemplateRegistry:
                     f"No prompt files starting with '{name_prefix}' in: {prompts_dir}"
                 )
 
+        # Exclude language_prompt.txt
+        candidates = [p for p in candidates if p.name != "language_prompt.txt"]
+        if not candidates:
+            raise FileNotFoundError(
+                f"Only 'language_prompt.txt' (or no usable prompt files) found in: {prompts_dir}"
+            )
+
         # Sort by modification time, newest first
         candidates.sort(key=lambda p: p.stat().st_mtime, reverse=True)
-        latest_path = candidates[0].resolve()
 
+        latest_path = candidates[0].resolve()
         logger.info(f"Latest prompt template selected: {latest_path}")
         return str(latest_path)
+
