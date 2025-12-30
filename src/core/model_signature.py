@@ -6,6 +6,7 @@ from src.core.processor import QAPromptProcessor
 import dspy
 from src.utils.config import config
 from src.core.template_registry import TemplateRegistry
+from src.utils.logger import logger
 
 
 processor = QAPromptProcessor(config)
@@ -33,6 +34,7 @@ def build_qa_signature_from_latest_template(
 
     raw_prompt_text = load_prompt_template(template_path)
     prompt_text = processor.render(raw_prompt_text)
+    logger.info(f"prompt:\n  ===============================\n\n{prompt_text}\n\n==============================")
 
 
     class QAGenerationSignature(dspy.Signature):
