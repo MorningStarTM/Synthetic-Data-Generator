@@ -29,7 +29,28 @@ class QAPromptProcessor:
             or self.config.get("num_questions")
             or 10
         )
+        self.task_description: str = (
+            self.config.get("task_description")
+            or "Question and Answer"
+        )
 
+        self.language: str = (
+            self.config.get("language")
+            or "English"
+        )
+
+        self.language_prompt = self._read_language_prompt("src\\template\\language_prompt.txt")
+
+
+    def _read_language_prompt(self, file_path: str) -> str:
+        """Read language prompt from file."""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as file:
+                return file.read()
+        except FileNotFoundError:
+            return ""
+        
+    
     def render(
         self,
         template_text: str,
@@ -48,9 +69,13 @@ class QAPromptProcessor:
         """
         n = num_questions if num_questions is not None else self.default_num_questions
 
+
         # Extend this dict later if you add more placeholders
         values = {
             "num_question": n,
+            "task_description": self.task_description,
+            "language": self.language,
+            "language_prompt": self.language_prompt,
         }
 
         return template_text.format(**values)
