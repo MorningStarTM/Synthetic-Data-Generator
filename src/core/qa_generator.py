@@ -12,7 +12,9 @@ from src.eval.similarity import QADiversityMetric
 from src.utils.utils import load_topic_docs_from_dir
 from src.optimizers.metric_optimizer import composite_metric
 from src.core.template_registry import TemplateRegistry
-
+from src.core.context_manager import ContextManager
+from pathlib import Path
+from datetime import datetime
 
 
 
@@ -50,16 +52,22 @@ class QAGenerator:
         # Initialize DSPy-backed provider
         self.provider = DspyProvider(provider_config)
         self.registry = TemplateRegistry(config=config)
+        self.context_manager = ContextManager(config=config)
 
         self.div_metric = QADiversityMetric(embedding_model=self.config.get("embedding_model","all-MiniLM-L6-v2"))
         self.info_metric = WeightedInformationCoverageMetric(embedding_model=self.config.get("embedding_model","all-MiniLM-L6-v2"))
+
+        self.output_dir = Path(self.config["output_dir"])  # make sure this exists in your config
+        self.output_dir.mkdir(parents=True, exist_ok=True)
 
 
     def generate(
         self,
         context_filename: str,
-        trainset:dspy.Example,
-        num_questions: Optional[int] = None,
+        trainset:dspy.Example=None,
+        num_sample: Optional[int] = None,
+        prompt_optimization: bool = True,
+
     ) -> str:
         """
         Load context from a .txt file and generate QA JSON.
@@ -81,45 +89,58 @@ class QAGenerator:
             raise FileNotFoundError(f"Context file not found: {context_path}")
 
         # Read context text
-        with open(context_path, "r", encoding="utf-8") as f:
-            context_text = f.read()
+        context_text = self.context_manager.read_context(context_filename)
+        # with open(context_path, "r", encoding="utf-8") as f:
+        #     context_text = f.read()
 
         # Decide how many questions to ask for
-        n_questions = num_questions or self.default_num_questions
+        num_samples = num_sample or self.default_num_questions
 
         # Options passed into DspyProvider.generate()
-        options = {"num_questions": n_questions}
+        options = {"num_questions": num_samples}
 
         logger.info(
-            f"Generating Q&A from context file='{context_path}' "
-            f"with num_questions={n_questions} using model={self.provider.model_name}"
+            f"Generating dataset from context file='{context_path}' "
+            f"with number of data points ={num_samples} using model={self.provider.model_name}"
         )
 
         # Delegate to DspyProvider
         qa_json = self.provider.generate(context=context_text, options=options)
         #save_qa_from_completions(qa_json.completions)
         
+
         qa2json = qa_to_json(qa_json.completions)
         gen_text = json.dumps(qa2json, ensure_ascii=False)
+
+        base_name = Path(context_filename).stem
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        out_path = self.output_dir / f"{base_name}_qa_{ts}.json"
+
+        with out_path.open("w", encoding="utf-8") as f:
+            f.write(gen_text)
+
+        logger.info(f"Saved generated QA JSON to: {out_path}")
         
-        topic_docs = load_topic_docs_from_dir(self.config['context_dir'])
-        print(topic_docs)
-        # Information coverage
-        info_score, _ = self.info_metric(gen_text, topic_docs)
+        if prompt_optimization:
+            topic_docs = load_topic_docs_from_dir(self.config['context_dir'])
+            print(topic_docs)
+            # Information coverage
+            info_score, _ = self.info_metric(gen_text, topic_docs)
 
-        # Diversity check
-        div_score, _ = self.div_metric(qa2json)
+            # Diversity check
+            div_score, _ = self.div_metric(qa2json)
 
-        if info_score < 0.65 or div_score < 0.5:
-            optimizer = dspy.SIMBA(metric=composite_metric, bsize=2, max_steps=2)
-            optimized_program = optimizer.compile(self.provider.predictor, trainset=trainset)
-            self.registry.save_prompt_template(
-                name="qa_optimized_prompt",
-                content=optimized_program.signature.instructions,
-                category="optimized",     # stored in prompts/optimized/
-                use_user_dir=False,        # user_configs/prompts/optimized/...
-                add_timestamp=True,       # filename includes timestamp
-            )
+            if info_score < 0.65 or div_score < 0.5:
+                optimizer = dspy.SIMBA(metric=composite_metric, bsize=2, max_steps=2)
+                optimized_program = optimizer.compile(self.provider.predictor, trainset=trainset)
+                self.registry.save_prompt_template(
+                    name="qa_optimized_prompt",
+                    content=optimized_program.signature.instructions,
+                    category="optimized",     # stored in prompts/optimized/
+                    use_user_dir=False,        # user_configs/prompts/optimized/...
+                    add_timestamp=True,       # filename includes timestamp
+                )
+            return qa_json, optimized_program
 
 
         
@@ -127,4 +148,4 @@ class QAGenerator:
             self.generate()"""
 
 
-        return qa_json, optimized_program
+        return qa_json
