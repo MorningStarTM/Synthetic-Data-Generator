@@ -23,3 +23,18 @@ def composite_metric(example, prediction, trace=None):
    score = (score1 + score2) / 2.0
    feedback = f"You scored {score1}/1.0 and {score2}/1.0 on diversity and information coverage, respectively"
    return dspy.Prediction(score=score, feedback=feedback)
+
+
+def format_mismatch_score(example, prediction, trace=None):
+
+    from src.eval.format_score import format_mismatch_score as format_score_func
+
+    report = format_score_func(
+        llm_output=prediction.completions,
+        expected_schema=config['expected_schema'],
+        expected_num_samples=config['default_num_samples'],
+        require_exact_keys=True
+    )
+
+    feedback = f"You scored {report['score']} for format matching. Format validation report {report['issues']}"
+    return dspy.Prediction(score=report['score'], feedback=feedback)
