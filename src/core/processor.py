@@ -23,11 +23,11 @@ class QAPromptProcessor:
         """
         self.config = config or {}
 
-        # Priority: explicit default_num_questions, then num_questions, else 10
-        self.default_num_questions: int = (
-            self.config.get("default_num_questions")
-            or self.config.get("num_questions")
-            or 10
+        # Priority: explicit default_num_samples, then num_samples, else 10
+        self.default_num_samples: int = (
+            self.config.get("default_num_samples")
+            or self.config.get("num_samples")
+            or 2
         )
         self.task_description: str = (
             self.config.get("task_description")
@@ -64,7 +64,7 @@ class QAPromptProcessor:
     def render(
         self,
         template_text: str,
-        num_questions: Optional[int] = None,
+        num_samples: Optional[int] = None,
     ) -> str:
         """
         Fill {num_question} in the given template text.
@@ -77,12 +77,12 @@ class QAPromptProcessor:
         Returns:
             Rendered template string with {num_question} replaced.
         """
-        n = num_questions if num_questions is not None else self.default_num_questions
+        n = num_samples if num_samples is not None else self.default_num_samples
 
 
         # Extend this dict later if you add more placeholders
         values = {
-            "num_question": n,
+            "num_samples": n,
             "task_description": self.task_description,
             "language": self.language,
             "language_prompt": self.language_prompt,
