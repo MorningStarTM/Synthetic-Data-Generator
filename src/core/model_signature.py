@@ -41,11 +41,11 @@ def build_qa_signature_from_latest_template(
         """This will be overwritten with the template content."""
         
         context = dspy.InputField(
-            desc="input your conext to generate questions and answers"
+            desc="input your conext to generate data"
         )
         # JSON output
         qa_json: str = dspy.OutputField(
-            desc="A JSON array of objects, each with 'question' and 'answer' fields."
+            desc="based on given task, return data as dataframe, "
         )
 
     # Inject your template as the docstring used by DSPy
