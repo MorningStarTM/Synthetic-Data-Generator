@@ -15,6 +15,7 @@ from src.core.template_registry import TemplateRegistry
 from src.core.context_manager import ContextManager
 from pathlib import Path
 from datetime import datetime
+from src.eval.format_score import format_mismatch_score
 
 
 
@@ -44,9 +45,9 @@ class QAGenerator:
         # Provider-specific config (fallback: treat whole config as provider config)
         provider_config: Dict[str, Any] = self.config.get("provider", self.config)
 
-        # Default number of Q&A pairs if not specified at call-time
+        # Default number of samples if not specified at call-time
         self.default_num_questions: int = self.config.get(
-            "default_num_questions", 10
+            "default_num_samples", 10
         )
 
         # Initialize DSPy-backed provider
@@ -97,7 +98,7 @@ class QAGenerator:
         num_samples = num_sample or self.default_num_questions
 
         # Options passed into DspyProvider.generate()
-        options = {"num_questions": num_samples}
+        options = {"num_samples": num_samples}
 
         logger.info(
             f"Generating dataset from context file='{context_path}' "
@@ -149,3 +150,71 @@ class QAGenerator:
 
 
         return qa_json
+    
+
+    def generate_sensorial_data(
+        self,
+        context_filename: str,
+        num_sample: Optional[int] = None,
+        trainset: Optional[dspy.Example] = None
+
+    ) -> str:
+        """
+        Load context from a .txt file and generate QA JSON.
+
+        Args:
+            context_filename: Name of the .txt file inside `context_dir`
+                              (e.g. "agency_123_context.txt").
+            num_questions: Optional override. If None, uses default_num_questions.
+
+        Returns:
+            JSON string of Q&A pairs produced by DspyProvider.generate().
+        """
+        step = 0
+        # Resolve full path to context file
+        context_path = os.path.join(self.context_dir, context_filename)
+
+        if not os.path.exists(context_path):
+            logger.error(f"Context file not found: {context_path}")
+            raise FileNotFoundError(f"Context file not found: {context_path}")
+
+        # Read context text
+        context_text = self.context_manager.read_context(context_filename)
+        # with open(context_path, "r", encoding="utf-8") as f:
+        #     context_text = f.read()
+
+        # Decide how many samples to generate
+        num_samples = num_sample or self.default_num_samples
+
+        # Options passed into DspyProvider.generate()
+        options = {"num_samples": num_samples}
+
+        logger.info(
+            f"Generating dataset from context file='{context_path}' "
+            f"with number of data points ={num_samples} using model={self.provider.model_name}"
+        )
+
+        # Delegate to DspyProvider
+        raw_data = self.provider.generate(context=context_text, options=options)
+
+        report = format_mismatch_score(
+            llm_output=str(raw_data.completions),
+            expected_schema=self.config['expected_schema'],
+            expected_num_samples=num_samples,
+            require_exact_keys=True
+        )
+
+        if report['score'] <= 90:
+            optimizer = dspy.SIMBA(metric=composite_metric, bsize=2, max_steps=2)
+            optimized_program = optimizer.compile(self.provider.predictor, trainset=trainset)
+            self.registry.save_prompt_template(
+                name="qa_optimized_prompt",
+                content=optimized_program.signature.instructions,
+                category="optimized",     # stored in prompts/optimized/
+                use_user_dir=False,        # user_configs/prompts/optimized/...
+                add_timestamp=True,       # filename includes timestamp
+            )
+    
+
+
+        return raw_data, report
