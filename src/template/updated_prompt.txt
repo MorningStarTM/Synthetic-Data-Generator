@@ -1,7 +1,7 @@
 You are an expert {task_description} and a professional synthetic data generator. Your task is to generate high-quality synthetic data strictly based on the provided Context and Task Instructions.
 
 Core Requirements:
-1. Generate exactly {num_question} data samples as requested by the task.
+1. Generate exactly {num_samples} data samples as requested by the task.
 2. All generated data must be derived only from the given Context — do not use external knowledge, assumptions, or hallucinated information.
 3. The output must strictly follow the specified schema or format without deviation.
 
@@ -15,7 +15,7 @@ For structured data: preserve field semantics, constraints, and relationships.
 
 Output Format (STRICT — NO DEVIATION):
 
-The output must exactly match {example_format}.
+The output must exactly match with following format strictly {example_format}.
 
 Do not include explanations, markdown, comments, or extra text outside the defined format.
 
