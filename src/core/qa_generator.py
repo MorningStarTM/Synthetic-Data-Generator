@@ -16,7 +16,7 @@ from src.core.context_manager import ContextManager
 from pathlib import Path
 from datetime import datetime
 from src.eval.format_score import format_mismatch_score
-
+from src.utils.dumper import Dumper
 
 
 class QAGenerator:
@@ -44,6 +44,8 @@ class QAGenerator:
 
         # Provider-specific config (fallback: treat whole config as provider config)
         provider_config: Dict[str, Any] = self.config.get("provider", self.config)
+
+        self.dumper = Dumper(self.config)
 
         # Default number of samples if not specified at call-time
         self.default_num_questions: int = self.config.get(
@@ -197,24 +199,47 @@ class QAGenerator:
         # Delegate to DspyProvider
         raw_data = self.provider.generate(context=context_text, options=options)
 
-        report = format_mismatch_score(
-            llm_output=str(raw_data.completions),
-            expected_schema=self.config['expected_schema'],
-            expected_num_samples=num_samples,
-            require_exact_keys=True
+        # report = format_mismatch_score(
+        #     llm_output=str(raw_data.completions),
+        #     expected_schema=self.config['expected_schema'],
+        #     expected_num_samples=num_samples,
+        #     require_exact_keys=True
+        # )
+
+        # if report['score'] <= 90:
+        #     optimizer = dspy.SIMBA(metric=composite_metric, bsize=1, max_steps=2, num_candidates=3)
+        #     optimized_program = optimizer.compile(self.provider.predictor, trainset=trainset)
+        #     self.registry.save_prompt_template(
+        #         name="qa_optimized_prompt",
+        #         content=optimized_program.signature.instructions,
+        #         category="optimized",     # stored in prompts/optimized/
+        #         use_user_dir=False,        # user_configs/prompts/optimized/...
+        #         add_timestamp=True,       # filename includes timestamp
+        #     )
+
+
+        logger.info(f"plain output: {raw_data.completions.answer[0]}")
+        
+        # raw_data.completions.answer[0] is already a list of dicts (row-oriented)
+        row_data = raw_data.completions.answer[0]
+        
+        # Convert row-oriented (list of dicts) to column-oriented (dict of lists)
+        if row_data and isinstance(row_data, list) and isinstance(row_data[0], dict):
+            column_data = {}
+            for key in row_data[0].keys():
+                column_data[key] = [row[key] for row in row_data]
+        else:
+            # If already column-oriented or invalid, use as-is
+            column_data = row_data
+        
+        self.dumper.save_dict_to_csv(
+            column_data, 
+            filename=self.config['filename']
         )
 
-        if report['score'] <= 90:
-            optimizer = dspy.SIMBA(metric=composite_metric, bsize=2, max_steps=2)
-            optimized_program = optimizer.compile(self.provider.predictor, trainset=trainset)
-            self.registry.save_prompt_template(
-                name="qa_optimized_prompt",
-                content=optimized_program.signature.instructions,
-                category="optimized",     # stored in prompts/optimized/
-                use_user_dir=False,        # user_configs/prompts/optimized/...
-                add_timestamp=True,       # filename includes timestamp
-            )
-    
+        return raw_data.completions.answer
 
 
-        return raw_data, report
+
+
+
