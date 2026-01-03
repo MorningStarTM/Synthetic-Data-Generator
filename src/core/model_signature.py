@@ -43,9 +43,9 @@ def build_qa_signature_from_latest_template(
         context = dspy.InputField(
             desc="input your conext to generate data"
         )
-        # JSON output
-        qa_json: str = dspy.OutputField(
-            desc="based on given task, return data as dataframe, "
+        
+        answer: str = dspy.OutputField(
+            desc="based on given task, return data as answer, "
         )
 
     # Inject your template as the docstring used by DSPy
