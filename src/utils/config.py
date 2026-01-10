@@ -27,6 +27,8 @@ config = {
                         "PlayerLevel": "int",
                         "AchievementsUnlocked": "int",
                         "EngagementLevel": "str",
-                    }
+                    },
+    'task_description':'time-series',
+    'time_series_data_path':Path('src/template/additional_element/time_series_prompt.txt')
 
 }
