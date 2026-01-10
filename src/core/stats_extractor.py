@@ -411,3 +411,24 @@ class TimeSeriesStatsExtractor:
             "round_digits": self.cfg.round_digits,
             "series_count": int(len(ds.series)),
         }
+
+
+
+# ---------------------------
+# Example usage
+# ---------------------------
+
+# if __name__ == "__main__":
+#     cfg = ExtractorConfig(
+#         detail="lite",               # "lite" for LLM prompts, "full" for debugging
+#         include_categorical=False,    # set True if you want categorical stats too
+#         resample_rule=None,           # set e.g. "1D" if needed
+#         fill_method="ffill",
+#         compute_cross_corr=True,
+#         compute_cross_lagged=True,
+#     )
+
+#     extractor = TimeSeriesStatsExtractor(cfg)
+
+#     stats = extractor.from_csv("your_timeseries.csv")
+#     print(extractor.to_prompt_json(stats))
