@@ -199,25 +199,7 @@ class QAGenerator:
         # Delegate to DspyProvider
         raw_data = self.provider.generate(context=context_text, options=options)
 
-        # report = format_mismatch_score(
-        #     llm_output=str(raw_data.completions),
-        #     expected_schema=self.config['expected_schema'],
-        #     expected_num_samples=num_samples,
-        #     require_exact_keys=True
-        # )
-
-        # if report['score'] <= 90:
-        #     optimizer = dspy.SIMBA(metric=composite_metric, bsize=1, max_steps=2, num_candidates=3)
-        #     optimized_program = optimizer.compile(self.provider.predictor, trainset=trainset)
-        #     self.registry.save_prompt_template(
-        #         name="qa_optimized_prompt",
-        #         content=optimized_program.signature.instructions,
-        #         category="optimized",     # stored in prompts/optimized/
-        #         use_user_dir=False,        # user_configs/prompts/optimized/...
-        #         add_timestamp=True,       # filename includes timestamp
-        #     )
-
-
+        
         logger.info(f"plain output: {raw_data.completions.answer[0]}")
         
         # raw_data.completions.answer[0] is already a list of dicts (row-oriented)
@@ -238,8 +220,3 @@ class QAGenerator:
         )
 
         return raw_data.completions.answer
-
-
-
-
-
