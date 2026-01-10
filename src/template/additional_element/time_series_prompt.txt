@@ -1,0 +1,13 @@
+Use the provided statistical summary for each column (min, max, mean, median, standard deviation, trend direction, seasonality indicators, correlation matrix, and value distributions) to guide data generation.
+Ensure all generated values stay within realistic ranges, preserve inter-column correlations, maintain temporal continuity, and reflect observed trends and seasonality.
+Introduce mild stochastic noise consistent with the original variance, but avoid outliers unless explicitly indicated by the stats.
+The target column must respect its historical dependency on other features and past values.
+
+Context:
+- Original dataset description
+- Time range and frequency
+- Column definitions
+- Extracted statistical summary (SEE BELOW)
+
+Extracted Statistics:
+{stats_placeholder}

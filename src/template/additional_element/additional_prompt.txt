@@ -1,0 +1,112 @@
+You are generating synthetic data for a classification task where the target label is EngagementLevel.
+The dataset contains three classes, and synthetic data is required only for the minority class: EngagementLevel = "High". The dataset contains the following columns:
+'PlayerID', 'Age', 'Gender', 'Location', 'GameGenre', 'PlayTimeHours',
+       'InGamePurchases', 'GameDifficulty', 'SessionsPerWeek',
+       'AvgSessionDurationMinutes', 'PlayerLevel', 'AchievementsUnlocked',
+       'EngagementLevel'
+
+these are categorical data point for features
+Categories in Gender : ['Male' 'Female']
+Categories in Location : ['Other' 'USA' 'Europe' 'Asia']
+Categories in GameGenre : ['Strategy' 'Sports' 'Action' 'RPG' 'Simulation']
+Categories in GameDifficulty : ['Medium' 'Easy' 'Hard']
+Categories in EngagementLevel : ['Medium' 'High' 'Low']
+
+
+Statistical Constraints (STRICT)
+
+The following table describes the true statistical distribution of the High class after filtering:
+{
+  "Age": {
+    "count": 10336.0,
+    "mean": 31.920085139318886,
+    "std": 10.092479921944363,
+    "min": 15.0,
+    "25%": 23.0,
+    "50%": 32.0,
+    "75%": 41.0,
+    "max": 49.0
+  },
+  "PlayTimeHours": {
+    "count": 10336.0,
+    "mean": 12.06923807312108,
+    "std": 6.914363061482827,
+    "min": 0.000629807034735,
+    "25%": 6.192523514500744,
+    "50%": 11.981023714638141,
+    "75%": 17.95887468729572,
+    "max": 23.996857261446287
+  },
+  "InGamePurchases": {
+    "count": 10336.0,
+    "mean": 0.20646284829721362,
+    "std": 0.40478610784512326,
+    "min": 0.0,
+    "25%": 0.0,
+    "50%": 0.0,
+    "75%": 0.0,
+    "max": 1.0
+  },
+  "SessionsPerWeek": {
+    "count": 10336.0,
+    "mean": 14.25454721362229,
+    "std": 3.913398347487864,
+    "min": 0.0,
+    "25%": 12.0,
+    "50%": 15.0,
+    "75%": 17.0,
+    "max": 19.0
+  },
+  "AvgSessionDurationMinutes": {
+    "count": 10336.0,
+    "mean": 131.92182662538698,
+    "std": 34.0725553226227,
+    "min": 10.0,
+    "25%": 111.0,
+    "50%": 137.0,
+    "75%": 159.0,
+    "max": 179.0
+  },
+  "PlayerLevel": {
+    "count": 10336.0,
+    "mean": 50.823722910216716,
+    "std": 28.57158457120932,
+    "min": 1.0,
+    "25%": 26.0,
+    "50%": 51.0,
+    "75%": 76.0,
+    "max": 99.0
+  },
+  "AchievementsUnlocked": {
+    "count": 10336.0,
+    "mean": 25.095975232198143,
+    "std": 14.418423388200758,
+    "min": 0.0,
+    "25%": 13.0,
+    "50%": 25.0,
+    "75%": 38.0,
+    "max": 49.0
+  }
+}
+
+
+All generated data must strictly obey these statistics:
+
+ Numerical values must lie within the provided min–max range
+ Mean, variance, and quartiles must be respected approximately
+ No out-of-distribution or impossible values are allowed
+
+
+These samples are for understanding feature relationships and realism only.
+
+Do NOT copy or memorize rows
+Do NOT duplicate values
+
+
+Generation Rules
+
+Generate exactly {num_question} synthetic rows.
+Every row must have EngagementLevel = "High".
+Preserve realistic feature correlations implied by statistics and samples.
+Ensure diversity across generated samples.
+Maintain correct data types and column order.
