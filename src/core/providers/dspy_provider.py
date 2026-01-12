@@ -5,6 +5,9 @@ from src.core.providers.model_provider import ModelProvider
 from src.utils.logger import logger
 from src.core.model_signature import build_qa_signature_from_latest_template
 from src.core.template_registry import TemplateRegistry
+from dotenv import load_dotenv
+
+load_dotenv()  
 
 class DspyProvider(ModelProvider):
     """
@@ -45,20 +48,28 @@ class DspyProvider(ModelProvider):
             # Optional: configure global DSPy default LM
             dspy.configure(lm=self.lm)
         
-        elif config['hoster'] == "HF":
-            self.model_name = config.get("model") or os.getenv(
-                "DSPY_MODEL", "meta-llama/Llama-3.1-8B-Instruct"
-            )
-            api_key = config.get("api_key") or os.getenv("HF_TOKEN")
+        elif config["hoster"] == "HF":
+            hf_id = config.get("model") or os.getenv("DSPY_MODEL", "huggingface/meta-llama/Llama-3.1-8B-Instruct")
 
-            # Extra LM kwargs: temperature, max_tokens, etc.
-            lm_kwargs: Dict[str, Any] = config.get("lm_kwargs", {})
-            if api_key is not None:
+            # If user didn't include a provider, pick one (Together is commonly available)
+            if not hf_id.startswith("huggingface/"):
+                hf_id = f"huggingface/{hf_id}"  
+
+            self.model_name = hf_id
+
+            api_key = config.get("api_key") or os.getenv("HF_TOKEN")
+            if not api_key:
+                raise RuntimeError("HF_TOKEN not found. Did you place it in .env and load it?")
+            lm_kwargs = dict(config.get("lm_kwargs", {}))
+
+            # remove unsupported keys to silence warnings
+            lm_kwargs.pop("max_retries", None)
+            lm_kwargs.pop("num_retries", None)
+
+            if api_key:
                 lm_kwargs.setdefault("api_key", api_key)
 
-            # Initialize underlying DSPy LM
-            self.lm = dspy.LM(self.model_name, **lm_kwargs)
-            # Optional: configure global DSPy default LM
+            self.lm = dspy.LM(self.model_name)
             dspy.configure(lm=self.lm)
 
 
