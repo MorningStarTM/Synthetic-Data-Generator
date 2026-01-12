@@ -64,7 +64,7 @@ class QAPromptProcessor:
 
         self.language_prompt = self._read_prompt("src\\template\\language_prompt.txt")
         self.additional_prompts = self._read_prompt(self.config['additional_prompt'])
-        self.example_format = self.csv_to_column_json_str(self.example_format, n=10)
+        
 
 
 
@@ -193,8 +193,10 @@ class QAPromptProcessor:
                                                         strict=True,
                                                         stats_placeholder=stats_json
                                                     )
+            self.example_format = self.csv_to_column_json_str(self.example_format, n=10)
         else:
             additional_prompt = self.additional_prompts
+            self.example_format = self._read_prompt(self.example_format)
 
         values = {
             "num_samples": n,
