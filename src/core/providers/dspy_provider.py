@@ -28,23 +28,43 @@ class DspyProvider(ModelProvider):
         """
         config = config or {}
 
-        # Model + API key
-        self.model_name = config.get("model") or os.getenv(
-            "DSPY_MODEL", "ollama/gemma3:4b"
-        )
-        api_key = config.get("api_key") or os.getenv("GEMINI_API_KEY")
+        if config['hoster'] == "ollama":
+            # Model + API key
+            self.model_name = config.get("model") or os.getenv(
+                "DSPY_MODEL", "ollama/gemma3:4b"
+            )
+            api_key = config.get("api_key") or os.getenv("GEMINI_API_KEY")
 
-        # Extra LM kwargs: temperature, max_tokens, etc.
-        lm_kwargs: Dict[str, Any] = config.get("lm_kwargs", {})
-        if api_key is not None:
-            lm_kwargs.setdefault("api_key", api_key)
+            # Extra LM kwargs: temperature, max_tokens, etc.
+            lm_kwargs: Dict[str, Any] = config.get("lm_kwargs", {})
+            if api_key is not None:
+                lm_kwargs.setdefault("api_key", api_key)
 
-        # Initialize underlying DSPy LM
-        self.lm = dspy.LM(self.model_name, **lm_kwargs)
+            # Initialize underlying DSPy LM
+            self.lm = dspy.LM(self.model_name, **lm_kwargs)
+            # Optional: configure global DSPy default LM
+            dspy.configure(lm=self.lm)
+        
+        elif config['hoster'] == "HF":
+            self.model_name = config.get("model") or os.getenv(
+                "DSPY_MODEL", "meta-llama/Llama-3.1-8B-Instruct"
+            )
+            api_key = config.get("api_key") or os.getenv("HF_TOKEN")
+
+            # Extra LM kwargs: temperature, max_tokens, etc.
+            lm_kwargs: Dict[str, Any] = config.get("lm_kwargs", {})
+            if api_key is not None:
+                lm_kwargs.setdefault("api_key", api_key)
+
+            # Initialize underlying DSPy LM
+            self.lm = dspy.LM(self.model_name, **lm_kwargs)
+            # Optional: configure global DSPy default LM
+            dspy.configure(lm=self.lm)
+
+
         self.registry = TemplateRegistry(config=config)
 
-        # Optional: configure global DSPy default LM
-        dspy.configure(lm=self.lm)
+        
 
         self.signature = build_qa_signature_from_latest_template(registry=self.registry)#(config.get("qa_template_path", "src/templates/qa_template.txt"))
         self.predictor = dspy.Predict(signature=self.signature)
