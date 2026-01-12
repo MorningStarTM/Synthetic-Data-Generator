@@ -196,11 +196,11 @@ class QAGenerator:
             f"with number of data points ={num_samples} using model={self.provider.model_name}"
         )
 
-        # Delegate to DspyProvider
+        #Delegate to DspyProvider
         raw_data = self.provider.generate(context=context_text, options=options)
 
         
-        logger.info(f"plain output: {raw_data.completions.answer[0]}")
+        logger.info(f"plain output: {raw_data}")
         
         # raw_data.completions.answer[0] is already a list of dicts (row-oriented)
         row_data = raw_data.completions.answer[0]
