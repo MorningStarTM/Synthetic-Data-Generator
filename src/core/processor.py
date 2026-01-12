@@ -1,7 +1,25 @@
 # src/core/prompt_processor.py
 
+import json
+import pandas as pd
+from pathlib import Path
+from typing import Any, Dict, Union, Optional
 from typing import Dict, Any, Optional
+from src.core.stats_extractor import TimeSeriesStatsExtractor, ExtractorConfig
 
+
+
+cfg = ExtractorConfig(
+        detail="lite",               # "lite" for LLM prompts, "full" for debugging
+        include_categorical=False,    # set True if you want categorical stats too
+        resample_rule=None,           # set e.g. "1D" if needed
+        fill_method="ffill",
+        compute_cross_corr=True,
+        compute_cross_lagged=True,
+    )
+
+
+extractor = TimeSeriesStatsExtractor(cfg)
 
 class QAPromptProcessor:
     """
@@ -46,6 +64,66 @@ class QAPromptProcessor:
 
         self.language_prompt = self._read_prompt("src\\template\\language_prompt.txt")
         self.additional_prompts = self._read_prompt(self.config['additional_prompt'])
+        self.example_format = self.csv_to_column_json_str(self.example_format, n=10)
+
+
+
+    def csv_to_column_json(
+            self,
+            csv_path: Union[str, Path],
+            *,
+            n: int = 10,
+            sep: str = ",",
+            encoding: Optional[str] = None,
+            keep_na: bool = False,
+        ) -> Dict[str, list]:
+        """
+        Read a CSV and return a dict-of-lists JSON shape:
+        { "col1": [v1, v2, ... up to n], "col2": [...], ... }
+
+        Notes:
+        - Takes the first `n` rows from the CSV.
+        - Converts NaN/NaT to None by default (JSON-friendly).
+        - Keeps native Python types when possible (int/float/bool/str).
+        """
+        csv_path = Path(csv_path)
+
+        df = pd.read_csv(csv_path, sep=sep, encoding=encoding)
+        df = df.head(n)
+
+        if keep_na:
+            # Keep NaN as-is (will fail json.dumps unless you allow NaN)
+            out: Dict[str, list] = {c: df[c].tolist() for c in df.columns}
+            return out
+
+        # JSON-safe: NaN/NaT -> None
+        df = df.where(pd.notnull(df), None)
+
+        out: Dict[str, list] = {}
+        for col in df.columns:
+            vals = df[col].tolist()
+            # Convert pandas Timestamp -> ISO string (JSON-friendly)
+            vals = [
+                (v.isoformat() if isinstance(v, pd.Timestamp) else v)
+                for v in vals
+            ]
+            out[str(col)] = vals
+
+        return out
+
+
+    def csv_to_column_json_str(
+            self,
+            csv_path: Union[str, Path],
+            *,
+            n: int = 10,
+            indent: int = 2,
+            **kwargs: Any,
+        ) -> str:
+        """Same as csv_to_column_json, but returns a JSON string."""
+        data = self.csv_to_column_json(csv_path, n=n, **kwargs)
+        return json.dumps(data, ensure_ascii=False, indent=indent)
+
 
 
     def _read_prompt(self, file_path: str) -> str:
@@ -106,20 +184,17 @@ class QAPromptProcessor:
         ) -> str:
         n = num_samples if num_samples is not None else self.default_num_samples
 
-        # Convention:
-        # args[0] -> additional_prompt template override (str)   (optional)
-        # args[1] -> additional_prompt_vars (dict)              (optional)
-        additional_prompt = args[0] if len(args) > 0 else None
-        additional_prompt_vars = args[1] if len(args) > 1 else None
-
-        add_tpl = additional_prompt if additional_prompt is not None else self.additional_prompts
-        add_vars = additional_prompt_vars if isinstance(additional_prompt_vars, dict) else {}
-
-        rendered_additional = self.render_additional_prompts(
-            additional_template=add_tpl,
-            strict=False,
-            **add_vars,
-        )
+        if self.config['task_description'] == "time-series":
+            stats = extractor.from_csv(self.config['time_series_path'])
+            stats_json = extractor.to_prompt_json(stats)
+            ts_prompt_text = self._read_prompt(self.config['time_series_data_path'])
+            additional_prompt = self.render_additional_prompts(
+                                                        ts_prompt_text,
+                                                        strict=True,
+                                                        stats_placeholder=stats_json
+                                                    )
+        else:
+            additional_prompt = self.additional_prompts
 
         values = {
             "num_samples": n,
@@ -127,7 +202,7 @@ class QAPromptProcessor:
             "language": self.language,
             "language_prompt": self.language_prompt,
             "example_format": self.example_format,
-            "additional_prompts": rendered_additional,
+            "additional_prompts": additional_prompt,
             **kwargs,  # allow extra placeholders for the main template too
         }
 
