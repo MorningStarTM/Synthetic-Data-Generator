@@ -19,7 +19,7 @@ from src.eval.format_score import format_mismatch_score
 from src.utils.dumper import Dumper
 
 
-class QAGenerator:
+class Generator:
     def __init__(self, config: Dict[str, Any]):
         """
         High-level wrapper around DspyProvider for QA generation.
